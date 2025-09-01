@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+
+{% block title %}All Photos - Photo Processor{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>All Photos</h2>
+    <a href="{% url 'upload_photo' %}" class="btn btn-primary">Upload New Photo</a>
+</div>
+
+<div class="row">
+    {% for photo in photos %}
+    <div class="col-md-4 mb-4">
+        <div class="card">
+            <img src="{{ photo.original_image.url }}" class="card-img-top" style="height: 200px; object-fit: cover;" alt="Photo thumbnail">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <small class="text-muted">{{ photo.created_at|date:"M d, Y" }}</small>
+                    <span class="badge bg-{% if photo.status == 'completed' %}success{% elif photo.status == 'failed' %}danger{% elif photo.status == 'processing' %}warning{% else %}secondary{% endif %}">
+                        {{ photo.get_status_display }}
+                    </span>
+                </div>
+                
+                <div class="mb-2">
+                    {% if photo.compress_image %}<span class="badge bg-info me-1">Compressed</span>{% endif %}
+                    {% if photo.remove_watermark %}<span class="badge bg-warning">Watermark Removed</span>{% endif %}
+                </div>
+                
+                <p class="card-text small">
+                    <strong>Original size:</strong> {{ photo.original_size|filesizeformat }}
+                    {% if photo.compressed_size %}
+                        <br><strong>Compressed size:</strong> {{ photo.compressed_size|filesizeformat }}
+                        <br><strong>Reduction:</strong> {{ photo.get_compression_ratio }}%
+                    {% endif %}
+                </p>
+                
+                <a href="{% url 'photo_detail' photo.id %}" class="btn btn-sm btn-outline-primary">View Details</a>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-12 text-center">
+        <p class="text-muted">No photos uploaded yet.</p>
+        <a href="{% url 'upload_photo' %}" class="btn btn-primary">Upload Your First Photo</a>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

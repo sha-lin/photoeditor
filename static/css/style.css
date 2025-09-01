@@ -1,0 +1,45 @@
+.upload-area {
+    border: 2px dashed #007bff;
+    border-radius: 10px;
+    padding: 2rem;
+    text-align: center;
+    background-color: #f8f9fa;
+    transition: all 0.3s ease;
+}
+
+.upload-area:hover {
+    border-color: #0056b3;
+    background-color: #e9ecef;
+}
+
+.image-comparison {
+    display: flex;
+    gap: 1rem;
+    margin: 1rem 0;
+}
+
+.image-comparison img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.processing-status {
+    position: sticky;
+    top: 20px;
+}
+
+.file-size-info {
+    font-family: monospace;
+    background-color: #f8f9fa;
+    padding: 0.5rem;
+    border-radius: 4px;
+    border-left: 4px solid #007bff;
+}
+
+@media (max-width: 768px) {
+    .image-comparison {
+        flex-direction: column;
+    }
+}

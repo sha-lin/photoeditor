@@ -1,0 +1,135 @@
+{% extends 'base.html' %}
+
+{% block title %}Photo {{ photo.id }} - Photo Processor{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h3>Photo Processing Status</h3>
+                <span class="badge bg-{% if photo.status == 'completed' %}success{% elif photo.status == 'failed' %}danger{% elif photo.status == 'processing' %}warning{% else %}secondary{% endif %}" id="status-badge">
+                    {% if photo.status == 'processing' %}
+                        <span class="processing-spinner"></span>
+                    {% endif %}
+                    <span id="status-text">{{ photo.get_status_display }}</span>
+                </span>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h5>Original Image</h5>
+                        <img src="{{ photo.original_image.url }}" class="img-fluid img-thumbnail mb-3" alt="Original">
+                        <p><strong>Size:</strong> <span id="original-size">{{ photo.original_size|filesizeformat }}</span></p>
+                        <a href="{% url 'download_image' photo.id 'original' %}" class="btn btn-sm btn-outline-primary">Download Original</a>
+                    </div>
+                    
+                    {% if photo.compress_image %}
+                    <div class="col-md-6">
+                        <h5>Compressed Image</h5>
+                        <div id="compressed-section">
+                            {% if photo.compressed_image %}
+                                <img src="{{ photo.compressed_image.url }}" class="img-fluid img-thumbnail mb-3" alt="Compressed">
+                                <p><strong>Size:</strong> <span id="compressed-size">{{ photo.compressed_size|filesizeformat }}</span></p>
+                                <p><strong>Compression:</strong> <span id="compression-ratio">{{ photo.get_compression_ratio }}%</span> reduction</p>
+                                <a href="{% url 'download_image' photo.id 'compressed' %}" class="btn btn-sm btn-success">Download Compressed</a>
+                            {% else %}
+                                <div class="text-center p-4">
+                                    <div class="processing-spinner mb-2"></div>
+                                    <p>Processing...</p>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+                
+                {% if photo.remove_watermark %}
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <h5>Watermark Removed</h5>
+                        <div id="watermark-section">
+                            {% if photo.watermark_removed_image %}
+                                <img src="{{ photo.watermark_removed_image.url }}" class="img-fluid img-thumbnail mb-3" alt="Watermark Removed" style="max-height: 300px;">
+                                <br>
+                                <a href="{% url 'download_image' photo.id 'watermark_removed' %}" class="btn btn-sm btn-success">Download Watermark Removed</a>
+                            {% else %}
+                                <div class="text-center p-4">
+                                    <div class="processing-spinner mb-2"></div>
+                                    <p>Processing watermark removal...</p>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5>Processing Options</h5>
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled">
+                    <li><strong>Compress Image:</strong> {{ photo.compress_image|yesno:"Yes,No" }}</li>
+                    {% if photo.compress_image %}
+                        <li><strong>Quality:</strong> {{ photo.compression_quality }}%</li>
+                    {% endif %}
+                    <li><strong>Remove Watermark:</strong> {{ photo.remove_watermark|yesno:"Yes,No" }}</li>
+                    <li><strong>Created:</strong> {{ photo.created_at|date:"M d, Y H:i" }}</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function updateStatus() {
+    fetch(`{% url 'photo_status' photo.id %}`)
+        .then(response => response.json())
+        .then(data => {
+            const statusBadge = document.getElementById('status-badge');
+            const statusText = document.getElementById('status-text');
+            
+            // Update status badge
+            statusBadge.className = 'badge bg-' + 
+                (data.status === 'completed' ? 'success' : 
+                 data.status === 'failed' ? 'danger' : 
+                 data.status === 'processing' ? 'warning' : 'secondary');
+            
+            if (data.status === 'processing') {
+                statusText.innerHTML = '<span class="processing-spinner"></span> Processing';
+            } else {
+                statusText.textContent = data.status.charAt(0).toUpperCase() + data.status.slice(1);
+            }
+            
+            // Update compressed section
+            if (data.has_compressed && data.status === 'completed') {
+                location.reload(); // Reload to show new images
+            }
+            
+            // Update watermark section
+            if (data.has_watermark_removed && data.status === 'completed') {
+                location.reload(); // Reload to show new images
+            }
+            
+            // Stop polling if completed or failed
+            if (data.status === 'completed' || data.status === 'failed') {
+                clearInterval(statusInterval);
+            }
+        })
+        .catch(error => console.error('Error:', error));
+}
+
+// Poll status every 2 seconds if still processing
+let statusInterval;
+if ('{{ photo.status }}' === 'processing' || '{{ photo.status }}' === 'pending') {
+    statusInterval = setInterval(updateStatus, 2000);
+}
+</script>
+{% endblock %}
